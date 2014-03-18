@@ -158,7 +158,7 @@ angular.module('ionic.ui.tabs', ['ionic.service.view'])
  * </ion-tabs>
  * ```
  *
- * @param {expression=} model The model to assign this tabbar's {@link ionic.controller:ionicTabs} controller to. By default, assigns  to $scope.tabsController.
+ * @param {expression=} model The model to assign this tab bar's {@link ionic.controller:ionicTabs} controller to. By default, assigns  to $scope.tabsController.
  * @param {string=} animation The animation to use when changing between tab pages.
  * @param {string=} tabs-style The class to apply to the tabs. Defaults to 'tabs-positive'.
  * @param {string=} tabs-type Whether to put the tabs on the top or bottom. Defaults to 'tabs-bottom'.
@@ -211,14 +211,12 @@ function($scope, $ionicViewService, $rootScope, $element) {
  * @name ionTab
  * @module ionic
  * @restrict E
- * @parent ionTabs
+ * @parent ionic.directive:ionTabs
  *
  * @description
  * Contains a tab's content.  The content only exists while the given tab is selected.
  *
  * Each ionTab has its own view history.
- *
- * Whenever a tab is shown or hidden, it will broadcast a 'tab.shown' or 'tab.hidden' event.
  *
  * @usage
  * ```html
@@ -239,10 +237,9 @@ function($scope, $ionicViewService, $rootScope, $element) {
  * @param {string=} icon-off The icon of the tab while it is not selected.
  * @param {expression=} badge The badge to put on this tab (usually a number).
  * @param {expression=} badge-style The style of badge to put on this tab (eg tabs-positive).
- * @param {expression=} left-buttons The left buttons to use on a parent {@link ionic.directive:ionNavBar} while this tab is selected.
- * @param {expression=} right-buttons The right buttons to use on a parent {@link ionic.directive:ionNavBar} while this tab is selected.
  * @param {expression=} on-select Called when this tab is selected.
  * @param {expression=} on-deselect Called when this tab is deselected.
+ * @param {expression=} ng-click By default, the tab will be selected on click. If ngClick is set, it will not.  You can explicitly switch tabs using {@link ionic.controller:ionicTabs#select ionicTabBar controller's select method}.
  */
 .directive('ionTab', ['$rootScope', '$animate', '$ionicBind', '$compile', '$ionicViewService',
 function($rootScope, $animate, $ionicBind, $compile, $ionicViewService) {
@@ -273,8 +270,6 @@ function($rootScope, $animate, $ionicBind, $compile, $ionicViewService) {
 
         $ionicBind($scope, $attr, {
           animate: '=',
-          leftButtons: '=',
-          rightButtons: '=',
           onSelect: '&',
           onDeselect: '&',
           title: '@',
@@ -297,6 +292,7 @@ function($rootScope, $animate, $ionicBind, $compile, $ionicViewService) {
 
         tabNavElement = angular.element(
           '<ion-tab-nav' +
+          attrStr('ng-click', attr.ngClick) +
           attrStr('title', attr.title) +
           attrStr('icon', attr.icon) +
           attrStr('icon-on', attr.iconOn) +
@@ -310,9 +306,6 @@ function($rootScope, $animate, $ionicBind, $compile, $ionicViewService) {
         tabsCtrl.$tabsElement.append($compile(tabNavElement)($scope));
 
         $scope.$watch('$tabSelected', function(value) {
-          if (!value) {
-            $scope.$broadcast('tab.hidden', $scope);
-          }
           childScope && childScope.$destroy();
           childScope = null;
           childElement && $animate.leave(childElement);
@@ -322,7 +315,6 @@ function($rootScope, $animate, $ionicBind, $compile, $ionicViewService) {
             childElement = tabContent.clone();
             $animate.enter(childElement, tabsCtrl.$element);
             $compile(childElement)(childScope);
-            $scope.$broadcast('tab.shown', $scope);
           }
         });
 
@@ -337,14 +329,14 @@ function($rootScope, $animate, $ionicBind, $compile, $ionicViewService) {
   };
 }])
 
-.directive('ionTabNav', function() {
+.directive('ionTabNav', ['$ionicNgClick', function($ionicNgClick) {
   return {
     restrict: 'E',
     replace: true,
     require: ['^ionTabs', '^ionTab'],
     template:
     '<a ng-class="{active: isTabActive(), \'has-badge\':badge}" ' +
-      'ng-click="selectTab($event)" class="tab-item">' +
+      ' class="tab-item">' +
       '<span class="badge {{badgeStyle}}" ng-if="badge">{{badge}}</span>' +
       '<i class="icon {{getIconOn()}}" ng-if="getIconOn() && isTabActive()"></i>' +
       '<i class="icon {{getIconOff()}}" ng-if="getIconOff() && !isTabActive()"></i>' +
@@ -363,6 +355,17 @@ function($rootScope, $animate, $ionicBind, $compile, $ionicViewService) {
         var tabsCtrl = ctrls[0],
           tabCtrl = ctrls[1];
 
+        //Remove title attribute so browser-tooltip does not apear
+        $element[0].removeAttribute('title');
+
+        $scope.selectTab = function(e) {
+          e.preventDefault();
+          tabsCtrl.select(tabCtrl.$scope, true);
+        };
+        if (!$attrs.ngClick) {
+          $ionicNgClick($scope, $element, 'selectTab($event)');
+        }
+
         $scope.getIconOn = function() {
           return $scope.iconOn || $scope.icon;
         };
@@ -373,11 +376,7 @@ function($rootScope, $animate, $ionicBind, $compile, $ionicViewService) {
         $scope.isTabActive = function() {
           return tabsCtrl.selectedTab() === tabCtrl.$scope;
         };
-        $scope.selectTab = function(e) {
-          e.preventDefault();
-          tabsCtrl.select(tabCtrl.$scope, true);
-        };
       };
     }
   };
-});
+}]);

@@ -13,6 +13,9 @@ angular.module('ionic.ui.scroll')
   var element = this.element = scrollViewOptions.el;
   var scrollView = this.scrollView = new ionic.views.Scroll(scrollViewOptions);
 
+  this.$scope = $scope;
+  $scope.$parent.$$ionicScrollController = this;
+
   if (!angular.isDefined(scrollViewOptions.bouncing)) {
     ionic.Platform.ready(function() {
       scrollView.options.bouncing = !ionic.Platform.isAndroid();
@@ -28,13 +31,31 @@ angular.module('ionic.ui.scroll')
   //Register delegate for event handling
   $ionicScrollDelegate.register($scope, $element, scrollView);
 
+  var resize = angular.bind(scrollView, scrollView.resize);
   $window.addEventListener('resize', resize);
+
+  $scope.$on('$viewContentLoaded', function(e, historyData) {
+    if (e.defaultPrevented) {
+      return;
+    }
+    //only the top-most scroll area under a view should remember that view's
+    //scroll position
+    e.preventDefault();
+
+    var values = historyData && historyData.rememberedScrollValues;
+    if (values) {
+      $timeout(function() {
+        scrollView.scrollTo(+values.left || null, +values.top || null);
+      }, 0, false);
+    }
+    $scope.$on('$destroy', function() {
+      historyData && (historyData.rememberedScrollValues = scrollView.getValues());
+    });
+  });
+
   $scope.$on('$destroy', function() {
     $window.removeEventListener('resize', resize);
   });
-  function resize() {
-    scrollView.resize();
-  }
 
   this.setRefresher = function(refresherScope, refresherElement) {
     var refresher = this.refresher = refresherElement;

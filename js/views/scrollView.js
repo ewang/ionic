@@ -687,8 +687,20 @@ ionic.views.Scroll = ionic.views.View.inherit({
         mousedown = false;
       }, false);
 
+      var wheelShowBarFn = ionic.debounce(function() {
+        console.log('SHOWFN');
+        self.__fadeScrollbars('in');
+      }, 500, true);
+
+      var wheelHideBarFn = ionic.debounce(function() {
+        console.log('HIDEFN');
+        self.__fadeScrollbars('out');
+      }, 100, false);
+
       document.addEventListener("mousewheel", function(e) {
+        wheelShowBarFn();
         self.scrollBy(e.wheelDeltaX/self.options.wheelDampen, -e.wheelDeltaY/self.options.wheelDampen);
+        wheelHideBarFn();
       });
     }
   },
@@ -742,9 +754,6 @@ ionic.views.Scroll = ionic.views.View.inherit({
 
   __resizeScrollbars: function() {
     var self = this;
-
-    // Bring the scrollbars in to show the content change
-    self.__fadeScrollbars('in');
 
     // Update horiz bar
     if(self.__indicatorX) {
@@ -1360,8 +1369,6 @@ ionic.views.Scroll = ionic.views.View.inherit({
 
     var self = this;
 
-    self.__fadeScrollbars('in');
-
     // Reset interruptedAnimation flag
     self.__interruptedAnimation = true;
 
@@ -1604,6 +1611,7 @@ ionic.views.Scroll = ionic.views.View.inherit({
       self.__isDragging = (self.__enableScrollX || self.__enableScrollY) && (distanceX >= minimumTrackingForDrag || distanceY >= minimumTrackingForDrag);
       if (self.__isDragging) {
         self.__interruptedAnimation = false;
+        self.__fadeScrollbars('in');
       }
 
     }

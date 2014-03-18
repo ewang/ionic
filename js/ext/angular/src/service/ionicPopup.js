@@ -8,13 +8,11 @@ angular.module('ionic.service.popup', ['ionic.service.templateLoad'])
  * @name $ionicPopup
  * @module ionic
  * @restrict E
- * @codepen jsHjf
+ * @codepen zkmhJ
  * @description
  *
  * The Ionic Popup service makes it easy to programatically create and show popup
  * windows that require the user to respond in order to continue:
- *
- * ![Popup](http://ionicframework.com.s3.amazonaws.com/docs/controllers/popup.png)
  *
  * The popup system has support for nicer versions of the built in `alert()` `prompt()` and `confirm()` functions
  * you are used to in the browser, but with more powerful support for customizing input types in the case of
@@ -133,6 +131,15 @@ angular.module('ionic.service.popup', ['ionic.service.templateLoad'])
     }
   };
 
+  var focusLastButton = function(popup) {
+    var buttons, lastButton;
+    buttons = popup.el.querySelectorAll('button');
+    lastButton = buttons[buttons.length-1];
+    if(lastButton) {
+      lastButton.focus();
+    }
+  }
+
   // Show a single popup
   var showSinglePopup = function(popup, opts) {
     var _this = this;
@@ -143,6 +150,8 @@ angular.module('ionic.service.popup', ['ionic.service.templateLoad'])
       popup.el.classList.remove('popup-hidden');
       popup.el.classList.add('popup-showing');
       popup.el.classList.add('active');
+
+      focusLastButton(popup);
     });
   };
 
@@ -152,6 +161,7 @@ angular.module('ionic.service.popup', ['ionic.service.templateLoad'])
       popup.el.classList.remove('popup-hidden');
       popup.el.classList.add('popup-showing');
       popup.el.classList.add('active');
+      focusLastButton(popup);
     });
   };
 

@@ -1,10 +1,11 @@
+(function() {
 angular.module('ionic.ui.navAnimation', [])
 /**
  * @ngdoc directive
  * @name ionNavAnimation
  * @module ionic
  * @restrict A
- * @parent ionNavView
+ * @parent ionic.directive:ionNavView
  *
  * @description
  * When used under an {@link ionic.directive:ionNavView} and on an `<a>` element,
@@ -39,3 +40,4 @@ angular.module('ionic.ui.navAnimation', [])
     }
   };
 });
+})();

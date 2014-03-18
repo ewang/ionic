@@ -58,10 +58,9 @@ angular.module('ionic.ui.content', ['ionic.ui.service', 'ionic.ui.scroll'])
 .directive('ionContent', [
   '$parse',
   '$timeout',
-  '$ionicScrollDelegate',
   '$controller',
   '$ionicBind',
-function($parse, $timeout, $ionicScrollDelegate, $controller, $ionicBind) {
+function($parse, $timeout, $controller, $ionicBind) {
   return {
     restrict: 'E',
     replace: true,
@@ -132,22 +131,6 @@ function($parse, $timeout, $ionicScrollDelegate, $controller, $ionicBind) {
           });
           //Publish scrollView to parent so children can access it
           scrollView = $scope.$parent.scrollView = scrollCtrl.scrollView;
-
-          $scope.$on('$viewContentLoaded', function(e, viewHistoryData) {
-            viewHistoryData || (viewHistoryData = {});
-            var scroll = viewHistoryData.scrollValues;
-            if (scroll) {
-              $timeout(function() {
-                scrollView.scrollTo(+scroll.left || null, +scroll.top || null);
-              }, 0);
-            }
-
-            //Save scroll onto viewHistoryData when scope is destroyed
-            $scope.$on('$destroy', function() {
-              viewHistoryData.scrollValues = scrollView.getValues();
-            });
-          });
-
         }
 
         transclude($scope, function(clone) {
@@ -167,7 +150,7 @@ function($parse, $timeout, $ionicScrollDelegate, $controller, $ionicBind) {
  * @name ionRefresher
  * @module ionic
  * @restrict E
- * @parent ionContent, ionScroll
+ * @parent ionic.directive:ionContent, ionic.directive:ionScroll
  * @description
  * Allows you to add pull-to-refresh to a scrollView.
  *
@@ -260,7 +243,7 @@ function($parse, $timeout, $ionicScrollDelegate, $controller, $ionicBind) {
  * @ngdoc directive
  * @name ionInfiniteScroll
  * @module ionic
- * @parent ionContent, ionScroll
+ * @parent ionic.directive:ionContent, ionic.directive:ionScroll
  * @restrict E
  *
  * @description

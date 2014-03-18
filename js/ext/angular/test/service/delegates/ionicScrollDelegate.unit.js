@@ -1,28 +1,36 @@
 describe('Ionic ScrollDelegate Service', function() {
-  var del, rootScope, compile, timeout, document;
+  var $ionicScrollDelegate, rootScope, compile, timeout, document;
 
   beforeEach(module('ionic'));
 
-  beforeEach(inject(function($ionicScrollDelegate, $rootScope, $timeout, $compile, $document) {
-    del = $ionicScrollDelegate;
+  beforeEach(inject(function(_$ionicScrollDelegate_, $rootScope, $timeout, $compile, $document) {
+    $ionicScrollDelegate = _$ionicScrollDelegate_;
     document = $document;
     rootScope = $rootScope;
     timeout = $timeout;
     compile = $compile;
   }));
 
+  it('should just return rootScope if no scrollCtrl', inject(function($rootScope) {
+    expect(function() {
+      $ionicScrollDelegate($rootScope);
+    }).not.toThrow();
+    expect($ionicScrollDelegate($rootScope).getScrollView()).toBeFalsy();
+  }));
+
   it('Should get scroll view', function() {
     var scope = rootScope.$new();
     var el = compile('<ion-content></ion-content>')(scope);
-    var sv = del.getScrollView(scope);
+    var sv = $ionicScrollDelegate(scope).getScrollView();
     expect(sv).not.toBe(undefined);
   });
 
   it('should resize', function() {
     var scope = rootScope.$new();
     var el = compile('<ion-content></ion-content>')(scope);
+    var del = $ionicScrollDelegate(scope);
 
-    var sv = del.getScrollView(scope);
+    var sv = del.getScrollView();
     spyOn(sv, 'resize');
     spyOn(sv, 'scrollTo');
 
@@ -65,6 +73,7 @@ describe('Ionic ScrollDelegate Service', function() {
         //ionic.trigger() REALLY doesnt want to work with tap,
         //so we just mock on to catch the callback and use that...
         var callback;
+        var del = $ionicScrollDelegate(scope);
         spyOn(ionic, 'on').andCallFake(function(eventName, cb) {
           callback = cb;
         });
@@ -91,7 +100,8 @@ describe('Ionic ScrollDelegate Service', function() {
         var scope = rootScope.$new();
         var el = compile('<ion-content start-y="100"></ion-content>')(scope);
 
-        var sv = del.getScrollView(scope);
+        var del = $ionicScrollDelegate(scope);
+        var sv = del.getScrollView();
         spyOn(sv, 'resize');
         spyOn(sv, 'scrollTo');
         del.scrollTop(animate);
@@ -105,7 +115,8 @@ describe('Ionic ScrollDelegate Service', function() {
         var scope = rootScope.$new();
         var el = compile('<ion-content start-y="100"><br/><br/></ion-content>')(scope);
 
-        var sv = del.getScrollView(scope);
+        var del = $ionicScrollDelegate(scope);
+        var sv = del.getScrollView();
         spyOn(sv, 'getScrollMax').andCallFake(function() {
           return { left: 10, top: 11 };
         });
@@ -122,8 +133,9 @@ describe('Ionic ScrollDelegate Service', function() {
       it('should resize & scrollTo', function() {
         var scope = rootScope.$new();
         var el = compile('<ion-content start-y="100"><br/><br/></ion-content>')(scope);
+        var del = $ionicScrollDelegate(scope);
 
-        var sv = del.getScrollView(scope);
+        var sv = del.getScrollView();
         spyOn(sv, 'scrollTo');
         spyOn(sv, 'resize');
         del.scrollTo(2, 3, animate);
@@ -132,19 +144,52 @@ describe('Ionic ScrollDelegate Service', function() {
         expect(sv.resize).toHaveBeenCalled();
         expect(sv.scrollTo.mostRecentCall.args).toEqual([2, 3, animate]);
       });
+
+      it('should throw error on rememberScroll if no id', function() {
+        var scope = rootScope.$new();
+        var el = compile('<ion-content></ion-content>');
+        var del = $ionicScrollDelegate(scope);
+        expect(del.rememberScrollPosition).toThrow();
+      });
+
+      it('scrollToRememberedPosition should scroll if exists', function() {
+        var scope = rootScope.$new();
+        var el = compile('<ion-content></ion-content>')(scope);
+        var del = $ionicScrollDelegate(scope);
+        var sv = del.getScrollView();
+        scope.$apply();
+        $ionicScrollDelegate._rememberedScrollValues['1'] = {
+          left: 3,
+          top: 4
+        };
+        del.scrollToRememberedPosition('1', animate);
+        spyOn(sv, 'scrollTo');
+        timeout.flush();
+        expect(sv.scrollTo).toHaveBeenCalledWith(3, 4, animate);
+      });
+
+      it('should save on destroy for rememberScrollPosition', function() {
+        var scope = rootScope.$new();
+        var el = compile('<ion-content></ion-content>')(scope);
+        var del = $ionicScrollDelegate(scope);
+        var sv = del.getScrollView();
+        scope.$apply();
+        $ionicScrollDelegate._rememberedScrollValues['1'] = {
+          left: -1,
+          top: -1
+        };
+        del.rememberScrollPosition('1', animate);
+        spyOn(sv, 'getValues').andCallFake(function() {
+          return { foo: 'bar' };
+        });
+        scope.$destroy();
+        expect(sv.getValues).toHaveBeenCalled();
+        expect($ionicScrollDelegate._rememberedScrollValues['1']).toEqual({
+          foo: 'bar'
+        });
+      });
     });
   }
-
-  it('should finish refreshing', function() {
-    var scope = rootScope.$new();
-    var el = compile('<ion-content start-y="100"></ion-content>')(scope);
-
-    var sv = del.getScrollView(scope);
-    spyOn(sv, 'finishPullToRefresh');
-
-    del.finishRefreshing(scope);
-    expect(sv.finishPullToRefresh).toHaveBeenCalled();
- });
 });
 
 describe('anchorScroll', function() {
@@ -161,19 +206,21 @@ describe('anchorScroll', function() {
 
   function testWithAnimate(animate) {
     describe('with animate=' + animate, function() {
-      var contentEl, scope, del, timeout;
-      beforeEach(inject(function($rootScope, $compile, $timeout, $document, $ionicScrollDelegate) {
+      var contentEl, scope, $ionicScrollDelegate, timeout;
+      beforeEach(inject(function($rootScope, $compile, $timeout, $document, _$ionicScrollDelegate_) {
         scope = $rootScope.$new();
         contentEl = $compile('<ion-content></ion-content>')(scope);
 
         document.body.appendChild(contentEl[0]);
-        del = $ionicScrollDelegate;
+        $ionicScrollDelegate = _$ionicScrollDelegate_;
         timeout = $timeout;
+        $rootScope.$apply();
       }));
 
       it('should anchorScroll to an element with id', function() {
         var anchorMe = angular.element('<div id="anchorMe">');
-        var sv = del.getScrollView(scope);
+        var del = $ionicScrollDelegate(scope);
+        var sv = del.getScrollView();
         spyOn(sv, 'scrollTo');
         spyOn(ionic.DomUtil, 'getPositionInParent').andCallFake(function() {
           return { left: 2, top: 1 };
@@ -188,7 +235,8 @@ describe('anchorScroll', function() {
       });
 
       it('should anchorScroll to top if !$location.hash()', function() {
-        var sv = del.getScrollView(scope);
+        var del = $ionicScrollDelegate(scope);
+        var sv = del.getScrollView();
         spyOn(sv, 'scrollTo');
         spyOn(ionic.DomUtil, 'getPositionInParent');
         del.anchorScroll(animate);
@@ -199,7 +247,8 @@ describe('anchorScroll', function() {
       });
 
       it('should anchorScroll to top if element with hash id doesnt exist', function() {
-        var sv = del.getScrollView(scope);
+        var del = $ionicScrollDelegate(scope);
+        var sv = del.getScrollView();
         spyOn(sv, 'scrollTo');
         spyOn(ionic.DomUtil, 'getPositionInParent');
 

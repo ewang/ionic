@@ -116,7 +116,7 @@ angular.module('ionic.ui.sideMenu', ['ionic.service.gesture', 'ionic.service.vie
  * @name ionSideMenuContent
  * @module ionic
  * @restrict A
- * @parent ionSideMenus
+ * @parent ionic.directive:ionSideMenus
  *
  * @description
  * A container for the main visible content, sibling to one or more
@@ -242,7 +242,7 @@ angular.module('ionic.ui.sideMenu', ['ionic.service.gesture', 'ionic.service.vie
  * @name ionSideMenu
  * @module ionic
  * @restrict E
- * @parent ionSideMenus
+ * @parent ionic.directive:ionSideMenus
  *
  * @description
  * A container for a side menu, sibling to an {@link ionic.directive:ionSideMenuContent} directive.

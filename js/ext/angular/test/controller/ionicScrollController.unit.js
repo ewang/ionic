@@ -22,6 +22,17 @@ describe('$ionicScroll Controller', function() {
     });
   }
 
+  it('should set this.$scope', function() {
+    setup();
+    //Just an arbitrary way of checking that it is indeed a scope
+    expect(typeof ctrl.$scope.$id).toBe('string');
+  });
+
+  it('should set $scope.$$ionicScrollController', function() {
+    setup();
+    expect(ctrl.$scope.$$ionicScrollController).toBe(ctrl);
+  });
+
   it('should set this.element and this.$element', function() {
     setup();
     expect(ctrl.element.tagName).toMatch(/div/i);
@@ -50,6 +61,27 @@ describe('$ionicScroll Controller', function() {
     spyOn(ctrl.scrollView, 'resize');
     ionic.trigger('resize', { target: window });
     expect(ctrl.scrollView.resize).toHaveBeenCalled();
+  });
+
+  it('should remember scroll position on $viewContentLoaded event', function() {
+    var historyData = { rememberedScrollValues: { left: 1, top: 2 } };
+    setup();
+    spyOn(ctrl.scrollView, 'scrollTo');
+    scope.$broadcast('$viewContentLoaded', historyData);
+    timeout.flush();
+    expect(ctrl.scrollView.scrollTo).toHaveBeenCalledWith(1, 2);
+
+    spyOn(ctrl.scrollView, 'getValues').andCallFake(function() {
+      return {
+        left: 33,
+        top: 44
+      };
+    });
+    scope.$broadcast('$destroy');
+    expect(historyData.rememberedScrollValues).toEqual({
+      left: 33,
+      top: 44
+    });
   });
 
   it('should unbind window event listener on scope destroy', function() {

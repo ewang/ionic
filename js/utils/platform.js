@@ -33,7 +33,7 @@
     grade: null,
     ua: navigator.userAgent,
 
-    /** 
+    /**
      * @ngdoc method
      * @name ionic.Platform#ready
      * @description

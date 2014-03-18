@@ -1,5 +1,6 @@
 var _ = require('lodash');
 var buildConfig = require('./config/build.config.js');
+var changelog = require('conventional-changelog');
 var connect = require('connect');
 var dgeni = require('dgeni');
 var http = require('http');
@@ -56,8 +57,15 @@ gulp.task('watch', function() {
   gulp.watch('scss/**/*.scss', ['sass']);
 });
 
-gulp.task('changelog', function() {
-  gutil.log(gutil.colors.red('TODO: Add working changelog task'));
+gulp.task('changelog', function(done) {
+  changelog({
+    repository: pkg.repository.url,
+    version: pkg.version,
+  }, function(err, data) {
+    if (err) return done(err);
+    require('fs').writeFileSync('CHANGELOG.md', data);
+    done();
+  });
 });
 
 gulp.task('bundle', [
@@ -117,7 +125,7 @@ gulp.task('scripts', function() {
 
 gulp.task('scripts-ng', function() {
   return gulp.src(buildConfig.angularIonicFiles)
-    .pipe(gulpif(IS_RELEASE_BUILD, stripDebug()))
+    // .pipe(gulpif(IS_RELEASE_BUILD, stripDebug()))
     .pipe(concat('ionic-angular.js'))
     .pipe(header(banner))
     .pipe(gulp.dest(buildConfig.distJs))
