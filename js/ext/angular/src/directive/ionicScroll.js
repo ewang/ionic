@@ -7,11 +7,15 @@ angular.module('ionic.ui.scroll', [])
  * @ngdoc directive
  * @name ionScroll
  * @module ionic
+ * @controller ionicScroll as $scope.$ionicScrollController
  * @restrict E
  *
  * @description
  * Creates a scrollable container for all content inside.
  *
+ * @param {string=} controller-bind The scope variable to bind this element's scrollView's
+ * {@link ionic.controller:ionicScroll ionicScroll controller} to.
+ * Default: $scope.$ionicScrollController.
  * @param {string=} direction Which way to scroll. 'x' or 'y'. Default 'y'.
  * @param {boolean=} paging Whether to scroll with paging.
  * @param {expression=} on-refresh Called on pull-to-refresh, triggered by an {@link ionic.directive:ionRefresher}.
@@ -22,9 +26,6 @@ angular.module('ionic.ui.scroll', [])
 .directive('ionScroll', ['$parse', '$timeout', '$controller', function($parse, $timeout, $controller) {
   return {
     restrict: 'E',
-    replace: true,
-    template: '<div class="scroll-view"><div class="scroll" ng-transclude></div></div>',
-    transclude: true,
     scope: {
       direction: '@',
       paging: '@',
@@ -34,26 +35,26 @@ angular.module('ionic.ui.scroll', [])
       scrollbarX: '@',
       scrollbarY: '@',
     },
-
     controller: function() {},
+    compile: function(element, attr) {
+      element.addClass('scroll-view');
 
-    compile: function(element, attr, transclude) {
+      //We cannot transclude here because it breaks element.data() inheritance on compile
+      var innerElement = angular.element('<div class="scroll"></div>');
+      innerElement.append(element.contents());
+      element.append(innerElement);
 
-      return {
-        //Prelink <ion-scroll> so it can compile before other directives compile.
-        //Then other directives can require ionicScrollCtrl
-        pre: prelink
-      };
-
+      return { pre: prelink };
       function prelink($scope, $element, $attr) {
-        var scrollView, scrollCtrl,
-          sc = $element[0].children[0];
+        var scrollView, scrollCtrl;
 
-        if(attr.padding == "true") {
-          sc.classList.add('padding');
+        if (angular.isDefined($attr.padding)) {
+          $scope.$watch($attr.padding, function(newVal) {
+            innerElement.toggleClass('padding', !!newVal);
+          });
         }
         if($scope.$eval($scope.paging) === true) {
-          sc.classList.add('scroll-paging');
+          innerElement.addClass('scroll-paging');
         }
 
         if(!$scope.direction) { $scope.direction = 'y'; }
@@ -61,6 +62,7 @@ angular.module('ionic.ui.scroll', [])
 
         var scrollViewOptions= {
           el: $element[0],
+          controllerBind: $attr.controllerBind,
           paging: isPaging,
           scrollbarX: $scope.$eval($scope.scrollbarX) !== false,
           scrollbarY: $scope.$eval($scope.scrollbarY) !== false,

@@ -12,16 +12,18 @@
 
   <body>
 
-    <ion-header-bar class="bar-positive" is-subheader="{{$root.isSub}}">
+    <ion-header-bar class="bar-positive" ng-class="{'bar-subheader': $root.isSub}">
       <h1 class="title">Header!</h1>
     </ion-header-bar>
 
     <ion-content scroll="true" ng-controller="ContentCtrl" padding="false">
 
-      <ion-refresher on-refresh="onRefresh()" pulling-text="pull!" refreshing-text="refreshing!"></ion-refresher>
+    <pre>
+    $hasHeader: {{!!$hasHeader}}
+    $hasSubheader: {{!!$hasSubheader}}
+    </pre>
 
-      <pre>{{$$contentState | json}}</pre>
-      <pre>{{$$contentState.getClassName()}}</pre>
+      <ion-refresher on-refresh="onRefresh()" pulling-text="pull!" refreshing-text="refreshing!"></ion-refresher>
 
       <ion-checkbox ng-model="$root.isSub">isSub</ion-checkbox>
 

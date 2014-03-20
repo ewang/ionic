@@ -32,11 +32,25 @@ angular.module('ionic.ui.sideMenu', ['ionic.service.gesture', 'ionic.service.vie
  * @ngdoc method
  * @name ionicSideMenus#toggleLeft
  * @description Toggle the left side menu (if it exists).
+ * @param {boolean=} isOpen Whether to open or close the menu.
+ * Default: Toggles the menu.
  */
 /**
  * @ngdoc method
  * @name ionicSideMenus#toggleRight
  * @description Toggle the right side menu (if it exists).
+ * @param {boolean=} isOpen Whether to open or close the menu.
+ * Default: Toggles the menu.
+ */
+/**
+ * @ngdoc method
+ * @name ionicSideMenus#isOpenLeft
+ * @returns {boolean} Whether the left menu is currently opened.
+ */
+/**
+ * @ngdoc method
+ * @name ionicSideMenus#isOpenRight
+ * @returns {boolean} Whether the right menu is currently opened.
  */
 
 /**
@@ -44,7 +58,7 @@ angular.module('ionic.ui.sideMenu', ['ionic.service.gesture', 'ionic.service.vie
  * @name ionSideMenus
  * @module ionic
  * @restrict E
- * @controller ionicSideMenus
+ * @controller ionicSideMenus as $scope.$ionicSideMenusController
  *
  * @description
  * A container element for side menu(s) and the main content. Allows the left
@@ -80,12 +94,14 @@ angular.module('ionic.ui.sideMenu', ['ionic.service.gesture', 'ionic.service.vie
  * ```js
  * function ContentController($scope) {
  *   $scope.toggleLeft = function() {
- *     $scope.sideMenuController.toggleLeft();
+ *     $scope.$ionicSideMenusController.toggleLeft();
  *   };
  * }
  * ```
  *
- * @param {expression=} model The model to assign this side menu container's {@link ionic.controller:ionicSideMenus} controller to. By default, assigns  to $scope.sideMenuController.
+ * @param {string=} controller-bind The scope variable to bind these side menus'
+ * {@link ionic.controller:ionicSideMenus ionicSideMenus controller} to.
+ * Default: $scope.$ionicSideMenusController.
  *
  */
 .directive('ionSideMenus', function() {
@@ -103,7 +119,7 @@ angular.module('ionic.ui.sideMenu', ['ionic.service.gesture', 'ionic.service.vie
 
       $scope.sideMenuContentTranslateX = 0;
 
-      $parse($attrs.model || 'sideMenuController').assign($scope, this);
+      $parse($attrs.controllerBind || '$ionicSideMenusController').assign($scope, this);
     }],
     replace: true,
     transclude: true,
@@ -141,8 +157,9 @@ angular.module('ionic.ui.sideMenu', ['ionic.service.gesture', 'ionic.service.vie
     restrict: 'AC',
     require: '^ionSideMenus',
     scope: true,
-    compile: function(element, attr, transclude) {
-      return function($scope, $element, $attr, sideMenuCtrl) {
+    compile: function(element, attr) {
+      return { pre: prelink };
+      function prelink($scope, $element, $attr, sideMenuCtrl) {
 
         $element.addClass('menu-content');
 
@@ -232,7 +249,7 @@ angular.module('ionic.ui.sideMenu', ['ionic.service.gesture', 'ionic.service.vie
           $ionicGesture.off(releaseGesture, 'release', dragReleaseFn);
           ionic.off('tap', contentTap, $element[0]);
         });
-      };
+      }
     }
   };
 }])
@@ -266,13 +283,12 @@ angular.module('ionic.ui.sideMenu', ['ionic.service.gesture', 'ionic.service.vie
   return {
     restrict: 'E',
     require: '^ionSideMenus',
-    replace: true,
-    transclude: true,
     scope: true,
-    template: '<div class="menu menu-{{side}}"></div>',
-    compile: function(element, attr, transclude) {
+    compile: function(element, attr) {
       angular.isUndefined(attr.isEnabled) && attr.$set('isEnabled', 'true');
       angular.isUndefined(attr.width) && attr.$set('width', '275');
+
+      element.addClass('menu menu-' + attr.side);
 
       return function($scope, $element, $attr, sideMenuCtrl) {
         $scope.side = $attr.side || 'left';
@@ -292,12 +308,39 @@ angular.module('ionic.ui.sideMenu', ['ionic.service.gesture', 'ionic.service.vie
         $scope.$watch($attr.isEnabled, function(val) {
           sideMenu.setIsEnabled(!!val);
         });
-
-        transclude($scope, function(clone) {
-          $element.append(clone);
-        });
       };
     }
   };
-});
+})
+
+
+/**
+ * @ngdoc directive
+ * @name menuClose
+ * @module ionic
+ * @restrict AC
+ *
+ * @description
+ * Closes a side menu which is currently opened.
+ *
+ * @usage
+ * Below is an example of a link within a side menu. Tapping this link would
+ * automatically close the currently opened menu
+ *
+ * ```html
+ * <a nav-clear menu-close href="#/home" class="item">Home</a>
+ * ```
+ */
+.directive('menuClose', ['$ionicViewService', function($ionicViewService) {
+  return {
+    restrict: 'AC',
+    require: '^ionSideMenus',
+    link: function($scope, $element, $attr, sideMenuCtrl) {
+      $element.bind('click', function(){
+        sideMenuCtrl.close();
+      });
+    }
+  };
+}]);
+
 })();

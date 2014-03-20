@@ -63,11 +63,11 @@ angular.module('ionic.ui.list', ['ngAnimate'])
     },
 
     template: '<div class="item item-complex">\
-            <div class="item-edit" ng-if="deleteClick !== undefined">\
+            <div class="item-left-edit item-delete" ng-if="deleteClick !== undefined">\
               <button class="button button-icon icon" ng-class="deleteIconClass" ng-click="deleteClick()" ion-stop-event="click"></button>\
             </div>\
             <a class="item-content" ng-href="{{ href }}" ng-transclude></a>\
-            <div class="item-drag" ng-if="reorderIconClass !== undefined">\
+            <div class="item-right-edit item-reorder" ng-if="reorderIconClass !== undefined">\
               <button data-ionic-action="reorder" class="button button-icon icon" ng-class="reorderIconClass"></button>\
             </div>\
             <div class="item-options" ng-if="itemOptionButtons">\
@@ -104,22 +104,24 @@ angular.module('ionic.ui.list', ['ngAnimate'])
           $scope.deleteClick = function() {
             if($attr.onDelete) {
               // this item has an on-delete attribute
-              $scope.onDelete({ item: $scope.item });
+              $scope.onDelete({ item: $scope.item, index: $scope.$parent.$index });
             } else if($parentAttrs.onDelete) {
               // run the parent list's onDelete method
               // if it doesn't exist nothing will happen
-              $parentScope.onDelete({ item: $scope.item });
+              $parentScope.onDelete({ item: $scope.item, index: $scope.$parent.$index });
             }
           };
 
           // Set which icons to use for deleting
           $scope.deleteIconClass = $scope.deleteIcon || $parentScope.deleteIcon || 'ion-minus-circled';
+          $element.addClass('item-left-editable');
         }
       }
 
       // set the reorder Icon Class only if the item or list set can-reorder="true"
       if(($attr.canReorder ? $scope.canReorder : $parentScope.canReorder) === "true") {
         $scope.reorderIconClass = $scope.reorderIcon || $parentScope.reorderIcon || 'ion-navicon';
+        $element.addClass('item-right-editable');
       }
 
       // Set the option buttons which can be revealed by swiping to the left
@@ -129,6 +131,7 @@ angular.module('ionic.ui.list', ['ngAnimate'])
         if(typeof $scope.itemOptionButtons === "undefined") {
           $scope.itemOptionButtons = $parentScope.optionButtons();
         }
+        $element.addClass('item-swipeable');
       }
 
     }
@@ -202,7 +205,7 @@ angular.module('ionic.ui.list', ['ngAnimate'])
       reorderIcon: '@'
     },
 
-    template: '<div class="list" ng-class="{\'list-editing\': showDelete, \'list-reordering\': showReorder}" ng-transclude></div>',
+    template: '<div class="list" ng-class="{\'list-left-editing\': showDelete, \'list-right-editing\': showReorder}" ng-transclude></div>',
 
     controller: ['$scope', '$attrs', function($scope, $attrs) {
       this.scope = $scope;
@@ -229,6 +232,7 @@ angular.module('ionic.ui.list', ['ngAnimate'])
       var destroyShowReorderWatch = $scope.$watch('showReorder', function(val) {
         if(val) {
           $element[0].classList.add('item-options-hide');
+          $scope.listView && $scope.listView.clearDragEffects();
         } else if(val === false) {
           // false checking is because it could be undefined
           // if its undefined then we don't care to do anything

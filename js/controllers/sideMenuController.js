@@ -49,13 +49,24 @@
       };
     },
 
+    isOpenLeft: function() {
+      return this.getOpenAmount() > 0;
+    },
+
+    isOpenRight: function() {
+      return this.getOpenAmount() < 0;
+    },
+
     /**
      * Toggle the left menu to open 100%
      */
-    toggleLeft: function() {
-      this.content.enableAnimation();
+    toggleLeft: function(shouldOpen) {
       var openAmount = this.getOpenAmount();
-      if(openAmount > 0) {
+      if (arguments.length === 0) {
+        shouldOpen = openAmount <= 0;
+      }
+      this.content.enableAnimation();
+      if(!shouldOpen) {
         this.openPercentage(0);
       } else {
         this.openPercentage(100);
@@ -65,10 +76,13 @@
     /**
      * Toggle the right menu to open 100%
      */
-    toggleRight: function() {
-      this.content.enableAnimation();
+    toggleRight: function(shouldOpen) {
       var openAmount = this.getOpenAmount();
-      if(openAmount < 0) {
+      if (arguments.length === 0) {
+        shouldOpen = openAmount >= 0;
+      }
+      this.content.enableAnimation();
+      if(!shouldOpen) {
         this.openPercentage(0);
       } else {
         this.openPercentage(-100);

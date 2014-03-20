@@ -1,7 +1,7 @@
 (function() {
 'use strict';
 
-angular.module('ionic.ui.content', ['ionic.ui.service', 'ionic.ui.scroll'])
+angular.module('ionic.ui.content', ['ionic.ui.scroll'])
 
 /**
  * Panel is a simple 100% width and height, fixed panel. It's meant for content to be
@@ -28,6 +28,8 @@ angular.module('ionic.ui.content', ['ionic.ui.service', 'ionic.ui.scroll'])
  * @ngdoc directive
  * @name ionContent
  * @module ionic
+ * @controller ionicScroll as $scope.$ionicScrollController
+ * @restrict E
  *
  * @description
  * The ionContent directive provides an easy to use content area that can be configured
@@ -42,14 +44,14 @@ angular.module('ionic.ui.content', ['ionic.ui.service', 'ionic.ui.scroll'])
  * directive, and infinite scrolling with the {@link ionic.directive:ionInfiniteScroll}
  * directive.
  *
- * @restrict E
+ * @param {string=} controller-bind The scope variable to bind this element's scrollView's
+ * {@link ionic.controller:ionicScroll ionicScroll controller} to.
+ * Default: $scope.$ionicScrollController.
+ * @param {boolean=} padding Whether to add padding to the content.
+ * of the content.  Defaults to true on iOS, false on Android.
  * @param {boolean=} scroll Whether to allow scrolling of content.  Defaults to true.
  * @param {boolean=} overflow-scroll Whether to use overflow-scrolling instead of
  * Ionic scroll.
- * @param {boolean=} padding Whether to add padding to the content.
- * @param {boolean=} has-header Whether to offset the content for a header bar.
- * @param {boolean=} has-subheader Whether to offset the content for a subheader bar.
- * @param {boolean=} has-footer Whether to offset the content for a footer bar.
  * @param {boolean=} has-bouncing Whether to allow scrolling to bounce past the edges
  * of the content.  Defaults to true on iOS, false on Android.
  * @param {expression=} on-scroll Expression to evaluate when the content is scrolled.
@@ -63,30 +65,31 @@ angular.module('ionic.ui.content', ['ionic.ui.service', 'ionic.ui.scroll'])
 function($parse, $timeout, $controller, $ionicBind) {
   return {
     restrict: 'E',
-    replace: true,
-    transclude: true,
     require: '^?ionNavView',
     scope: true,
-    template:
-    '<div class="scroll-content">' +
-      '<div class="scroll"></div>' +
-    '</div>',
-    compile: function(element, attr, transclude) {
-      if(attr.hasHeader == "true") { element.addClass('has-header'); }
-      if(attr.hasSubheader == "true") { element.addClass('has-subheader'); }
-      if(attr.hasFooter == "true") { element.addClass('has-footer'); }
-      if(attr.hasTabs == "true") { element.addClass('has-tabs'); }
-      if(attr.padding == "true") { element.find('div').addClass('padding'); }
+    compile: function(element, attr) {
+      element.addClass('scroll-content');
 
-      return {
-        //Prelink <ion-content> so it can compile before other directives compile.
-        //Then other directives can require ionicScrollCtrl
-        pre: prelink
-      };
+      //We cannot transclude here because it breaks element.data() inheritance on compile
+      var innerElement = angular.element('<div class="scroll"></div>');
+      innerElement.append(element.contents());
+      element.append(innerElement);
 
+      return { pre: prelink };
       function prelink($scope, $element, $attr, navViewCtrl) {
-        var clone, sc, scrollView, scrollCtrl,
-          scrollContent = angular.element($element[0].querySelector('.scroll'));
+        var clone, sc, scrollView, scrollCtrl;
+
+        $scope.$watch(function() {
+          return ($scope.$hasHeader ? ' has-header' : '')  +
+            ($scope.$hasSubheader ? ' has-subheader' : '') +
+            ($scope.$hasFooter ? ' has-footer' : '') +
+            ($scope.$hasSubfooter ? ' has-subfooter' : '') +
+            ($scope.$hasTabs ? ' has-tabs' : '') +
+            ($scope.$hasTabsTop ? ' has-tabs-top' : '');
+        }, function(className, oldClassName) {
+          $element.removeClass(oldClassName);
+          $element.addClass(className);
+        });
 
         $ionicBind($scope, $attr, {
           $onScroll: '&onScroll',
@@ -103,6 +106,12 @@ function($parse, $timeout, $controller, $ionicBind) {
           scrollEventInterval: '@'
         });
 
+        if (angular.isDefined($attr.padding)) {
+          $scope.$watch($attr.padding, function(newVal) {
+            innerElement.toggleClass('padding', !!newVal);
+          });
+        }
+
         if ($scope.scroll === "false") {
           //do nothing
         } else if(attr.overflowScroll === "true") {
@@ -113,6 +122,7 @@ function($parse, $timeout, $controller, $ionicBind) {
             $scope: $scope,
             scrollViewOptions: {
               el: $element[0],
+              controllerBind: $attr.controllerBind,
               bouncing: $scope.$eval($scope.hasBouncing),
               startX: $scope.$eval($scope.startX) || 0,
               startY: $scope.$eval($scope.startY) || 0,
@@ -130,15 +140,8 @@ function($parse, $timeout, $controller, $ionicBind) {
             }
           });
           //Publish scrollView to parent so children can access it
-          scrollView = $scope.$parent.scrollView = scrollCtrl.scrollView;
+          scrollView = scrollCtrl.scrollView;
         }
-
-        transclude($scope, function(clone) {
-          if (scrollCtrl) {
-            clone.data('$$ionicScrollController', scrollCtrl);
-          }
-          scrollContent.append(clone);
-        });
 
       }
     }
@@ -160,19 +163,8 @@ function($parse, $timeout, $controller, $ionicBind) {
  * When refreshing is complete, $broadcast the 'scroll.refreshComplete' event
  * from your controller.
  *
- * @param {expression=} on-refresh Called when the user pulls down enough and lets go
- * of the refresher.
- * @param {expression=} on-pulling Called when the user starts to pull down
- * on the refresher.
- * @param {string=} pulling-icon The icon to display while the user is pulling down.
- * Default: 'ion-arrow-down-c'.
- * @param {string=} pulling-text The text to display while the user is pulling down.
- * @param {string=} refreshing-icon The icon to display after user lets go of the
- * refresher.
- * @param {string=} refreshing-text The text to display after the user lets go of
- * the refresher.
- *
  * @usage
+ *
  * ```html
  * <ion-content ng-controller="MyController">
  *   <ion-refresher
@@ -197,6 +189,19 @@ function($parse, $timeout, $controller, $ionicBind) {
  *   };
  * });
  * ```
+ *
+ * @param {expression=} on-refresh Called when the user pulls down enough and lets go
+ * of the refresher.
+ * @param {expression=} on-pulling Called when the user starts to pull down
+ * on the refresher.
+ * @param {string=} pulling-icon The icon to display while the user is pulling down.
+ * Default: 'ion-arrow-down-c'.
+ * @param {string=} pulling-text The text to display while the user is pulling down.
+ * @param {string=} refreshing-icon The icon to display after user lets go of the
+ * refresher.
+ * @param {string=} refreshing-text The text to display after the user lets go of
+ * the refresher.
+ *
  */
 .directive('ionRefresher', ['$ionicBind', function($ionicBind) {
   return {
@@ -229,7 +234,7 @@ function($parse, $timeout, $controller, $ionicBind) {
           $onPulling: '&onPulling'
         });
 
-        scrollCtrl.setRefresher($scope, $element[0]);
+        scrollCtrl._setRefresher($scope, $element[0]);
         $scope.$on('scroll.refreshComplete', function() {
           $element[0].classList.remove('active');
           scrollCtrl.scrollView.finishPullToRefresh();

@@ -53,8 +53,10 @@ angular.module('ionic.service.popup', ['ionic.service.templateLoad'])
         console.log('Tapped!', res);
       }, function(err) {
         console.log('Err:', err);
-      }, function(msg) {
-        console.log('message:', msg);
+      }, function(popup) {
+        // If you need to access the popup directly, do it in the notify method
+        // This is also where you can programatically close the popup:
+        // popup.close();
       });
 
       // A confirm dialog
@@ -106,7 +108,7 @@ angular.module('ionic.service.popup', ['ionic.service.templateLoad'])
   });
   ```
 
- 
+
  */
 .factory('$ionicPopup', ['$rootScope', '$q', '$document', '$compile', '$timeout', '$ionicTemplateLoader',
   function($rootScope, $q, $document, $compile, $timeout, $ionicTemplateLoader) {
@@ -199,11 +201,13 @@ angular.module('ionic.service.popup', ['ionic.service.templateLoad'])
     var el = $compile('<ion-popup-backdrop></ion-popup-backdrop>')($rootScope.$new(true));
     $document[0].body.appendChild(el[0]);
     backdropEl = el;
+    $document[0].body.classList.add('popup-open');
   };
 
   // Remove the backdrop element
   var removeBackdrop = function() {
     backdropEl.remove();
+    $document[0].body.classList.remove('popup-open');
   };
 
   // Push the new popup onto the stack with the given data and scope.
@@ -250,7 +254,10 @@ angular.module('ionic.service.popup', ['ionic.service.templateLoad'])
   var constructPopupOnScope = function(element, scope) {
     var popup = {
       el: element[0],
-      scope: scope
+      scope: scope,
+      close: function() {
+        popAndRemove(this);
+      }
     };
 
     scope.popup = popup;
@@ -259,8 +266,8 @@ angular.module('ionic.service.popup', ['ionic.service.templateLoad'])
   }
 
   var buildPopupTemplate = function(opts, content) {
-    return '<ion-popup title="' + opts.title + '" buttons="buttons" on-button-tap="onButtonTap(button, event)" on-close="onClose(button, result, event)">' 
-        + (content || '') + 
+    return '<ion-popup title="' + opts.title + '" buttons="buttons" on-button-tap="onButtonTap(button, event)" on-close="onClose(button, result, event)">'
+        + (content || '') +
       '</ion-popup>';
   };
 
@@ -316,12 +323,19 @@ angular.module('ionic.service.popup', ['ionic.service.templateLoad'])
   };
 
 
+
   // Public API
   return {
+    /**
+     * @private
+     */
     showPopup: function(data) {
       var q = $q.defer();
 
       createPopup(data, q).then(function(popup, scope) {
+
+        // Send the popup back
+        q.notify(popup);
 
         // We constructed the popup, push it on the stack and show it
         pushAndShow(popup, data);
@@ -338,7 +352,8 @@ angular.module('ionic.service.popup', ['ionic.service.templateLoad'])
      * @name $ionicPopup#show
      * @description show a complex popup. This is the master show function for all popups
      * @param {data} object The options for showing a popup, of the form:
-     *
+     * @returns {Promise} an Angular promise which resolves when the user enters the correct data, and also
+     * sends the constructed popup in the notify function (for programatic closing, as shown in the example above).
      * ```
      * {
      *   content: '', // String. The content of the popup
@@ -346,7 +361,7 @@ angular.module('ionic.service.popup', ['ionic.service.templateLoad'])
      *   subTitle: '', // String (optional). The sub-title of the popup
      *   templateUrl: '', // URL String (optional). The URL of a template to load as the content (instead of the `content` field)
      *   scope: null, // Scope (optional). A scope to apply to the popup content (for using ng-model in a template, for example)
-     *   buttons: 
+     *   buttons:
      *     [
      *       {
      *         text: 'Cancel',
@@ -369,7 +384,7 @@ angular.module('ionic.service.popup', ['ionic.service.templateLoad'])
      *         }
      *       }
      *     ]
-     * 
+     *
      * }
      * ```
     */
@@ -386,7 +401,7 @@ angular.module('ionic.service.popup', ['ionic.service.templateLoad'])
      *
      * ```javascript
      *  $ionicPopup.alert({
-     *    title: 'Hey!;,
+     *    title: 'Hey!',
      *    content: 'Don\'t do that!'
      *  }).then(function(res) {
      *    // Accepted
@@ -479,7 +494,7 @@ angular.module('ionic.service.popup', ['ionic.service.templateLoad'])
      * @ngdoc method
      * @name $ionicPopup#prompt
      * @description show a simple prompt dialog.
-     * 
+     *
      * ```javascript
      *  $ionicPopup.prompt({
      *    title: 'Password Check',
@@ -532,7 +547,7 @@ angular.module('ionic.service.popup', ['ionic.service.templateLoad'])
         ]
       });
     }
-    
+
   };
 }]);
 
